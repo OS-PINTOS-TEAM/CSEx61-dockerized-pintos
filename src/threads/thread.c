@@ -603,19 +603,16 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init (&t->locks);
   t->lock_blocked_by = NULL;
 
-  if (thread_mlfqs)
-    {
-      if (t == initial_thread)
-        {
-          t->nice = NICE_DEFAULT;
-          t->recent_cpu = RECENT_CPU_BEGIN;
-        }
-      else
-        {
-          t->nice = thread_get_nice ();
-          t->recent_cpu = thread_get_recent_cpu ();
-        }
-    }
+  if (thread_mlfqs){
+   if (t == initial_thread){
+       t->nice = NICE_DEFAULT;
+       t->recent_cpu = RECENT_CPU_BEGIN;
+   }
+   else{
+      t->nice = thread_get_nice ();
+      t->recent_cpu = thread_get_recent_cpu ();
+   }
+   }
   /**************************/
   t->magic = THREAD_MAGIC;
 
@@ -820,11 +817,6 @@ void thread_wakeup(void)
 void thread_given_set_priority (struct thread *t, int new_priority, bool is_donated)
 {
   enum intr_level old_level;
-  //old_level = intr_disable();
-
-   //ASSERT (new_priority >= PRI_MIN && new_priority <= PRI_MAX);
-   //ASSERT (is_thread (t));
-
   if (!is_donated){
     /*If it is already donated and the new priority is less than it's priority,
       then store the new priority in current_priority */ 
@@ -849,6 +841,5 @@ void thread_given_set_priority (struct thread *t, int new_priority, bool is_dona
   else if (t->status == THREAD_RUNNING && list_entry (list_begin (&ready_list),struct thread,elem)->priority > t->priority){
     thread_yield();
   }
-  //intr_set_level (old_level);
 }
 /***************************************************************************************************/
