@@ -96,7 +96,7 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
     int64_t sleep_ticks; 
-    int priority_current; 
+    int effictive_priority; 
     bool is_donated;
     struct list locks;                    /* All locks a thread holds */
     struct lock *lock_blocked_by; 

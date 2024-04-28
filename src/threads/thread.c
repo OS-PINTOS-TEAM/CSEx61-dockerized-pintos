@@ -398,28 +398,27 @@ void update_thread_advanced_priority (void)
 
 void update_advanced_priority (struct thread *t)
 {
-  ASSERT (is_thread (t));
-  if (t != idle_thread)
-    {
-
-      t->priority = PRI_MAX - INTO_INT_NEAREST (DIV_INT (t->recent_cpu, 4)) -  t->nice * 2;
-      if (t->priority < PRI_MIN)
-        {
-          t->priority = PRI_MIN;
-        }
-      else if (t->priority > PRI_MAX)
-        {
-          t->priority = PRI_MAX;
-        }
+  //ASSERT (is_thread (t));
+  if (t != idle_thread){
+    t->priority = PRI_MAX - INTO_INT_NEAREST (DIV_INT (t->recent_cpu, 4)) -  t->nice * 2;
+    if (t->priority < PRI_MIN){
+      t->priority = PRI_MIN;
     }
+    else if (t->priority > PRI_MAX){
+      t->priority = PRI_MAX;
+    }
+  }else{
+    /*nothing*/
+  }
 }
 void update_all_advanced_priority (void)
 {
   thread_foreach (update_advanced_priority,NULL);
-  if (!list_empty (&ready_list))
-    {
-      list_sort (&ready_list, priority_more, NULL);
-    }
+  if (!list_empty (&ready_list)){
+    list_sort (&ready_list, priority_more, NULL);
+  }else{
+    /*nothing*/
+  }
 }
 
 void update_thread_recent_cpu (void)
@@ -433,13 +432,12 @@ void update_all_recent_cpu (void)
 void update_recent_cpu (struct thread *t)
 {
   ASSERT (is_thread (t));
-  if (t != idle_thread)
-    {
-      /* load_avg and recent_cpu are fixed-point numbers */
-      int first = MUL_INT (load_avg, 2);
-      int second = DIV (first, ADD_INT (first, 1));
-      t->recent_cpu = ADD_INT (MUL (second, t->recent_cpu), t->nice);
-    }
+  if (t != idle_thread){
+    /* load_avg and recent_cpu are fixed-point numbers */
+    int first = MUL_INT (load_avg, 2);
+    int second = DIV (first, ADD_INT (first, 1));
+    t->recent_cpu = ADD_INT (MUL (second, t->recent_cpu), t->nice);
+  }
 }
 void update_load_avg (void)
 {
@@ -450,14 +448,12 @@ void update_load_avg (void)
   t = thread_current ();
   ready_list_threads = list_size (&ready_list);
 
-  if (t != idle_thread)
-    {
-      ready_threads = ready_list_threads + 1;
-    }
-  else
-    {
-      ready_threads = ready_list_threads;
-    }
+  if (t != idle_thread){
+    ready_threads = ready_list_threads + 1;
+  }
+  else{
+    ready_threads = ready_list_threads;
+  }
   load_avg = MUL (DIV_INT (INTO_FIXED (59), 60), load_avg) + MUL_INT (DIV_INT (INTO_FIXED (1), 60), ready_threads);
 }
 
@@ -602,7 +598,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
 
   /******** changed **********/
-  t->priority_current = priority;
+  t->effictive_priority = priority;
   t->is_donated = false;
   list_init (&t->locks);
   t->lock_blocked_by = NULL;
@@ -824,41 +820,35 @@ void thread_wakeup(void)
 void thread_given_set_priority (struct thread *t, int new_priority, bool is_donated)
 {
   enum intr_level old_level;
-  old_level = intr_disable();
+  //old_level = intr_disable();
 
-   ASSERT (new_priority >= PRI_MIN && new_priority <= PRI_MAX);
-   ASSERT (is_thread (t));
+   //ASSERT (new_priority >= PRI_MIN && new_priority <= PRI_MAX);
+   //ASSERT (is_thread (t));
 
-   if (!is_donated) 
-     {
-      /* Operation is not donation */
-       if (t->is_donated && new_priority <= t->priority)
-          /* If it is already donated and the new priority is less than it's priority,
-          then store the new priority in current_priority */ 
-          t->priority_current = new_priority;
-       else
-          t->priority = t->priority_current = new_priority;
-     }
-   else 
-     {
-      /* Do Donation*/
-	      t->priority = new_priority;
-        t->is_donated = true;
-     }
-
-
-  if (t->status == THREAD_READY)
-    {
-      /* Reinsert the thread in ready list to be ordered by newly set priority.*/
-      list_remove (&t->elem);
-      list_insert_ordered (&ready_list, &t->elem, priority_more, NULL);
+  if (!is_donated){
+    /*If it is already donated and the new priority is less than it's priority,
+      then store the new priority in current_priority */ 
+    if (t->is_donated && new_priority <= t->priority){
+      t->effictive_priority = new_priority;
     }
-  else if (t->status == THREAD_RUNNING && list_entry (list_begin (&ready_list),struct thread,elem)->priority > t->priority)
-    {
-      /* If the running thread priority is less then the priority of first thread in ready list,
-      then thread yield the CPU */
-      thread_yield();
+    else{
+      t->priority = t->effictive_priority = new_priority;
     }
-  intr_set_level (old_level);
+  }
+  else{
+    /*Donated*/
+    t->priority = new_priority;
+    t->is_donated = true;
+  }
+
+  if (t->status == THREAD_READY){
+    /* Reinsert the thread in ready list to be ordered by newly set priority.*/
+    list_remove (&t->elem);
+    list_insert_ordered (&ready_list, &t->elem, priority_more, NULL);
+  }
+  else if (t->status == THREAD_RUNNING && list_entry (list_begin (&ready_list),struct thread,elem)->priority > t->priority){
+    thread_yield();
+  }
+  //intr_set_level (old_level);
 }
 /***************************************************************************************************/
