@@ -23,6 +23,12 @@ typedef int tid_t;
 #define PRI_MIN 0                       /* Lowest priority. */
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
+#define PRIORITY_FAKE -1
+#define LOCK_LEVEL 8
+#define NICE_MIN -20
+#define NICE_DEFAULT 0
+#define NICE_MAX 20
+#define RECENT_CPU_BEGIN 0
 
 /* A kernel thread or user process.
 
@@ -89,10 +95,18 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
-
+    int64_t sleep_ticks; 
+    int priority_current; 
+    bool is_donated;
+    struct list locks;                    /* All locks a thread holds */
+    struct lock *lock_blocked_by; 
+    int nice;                             
+    int recent_cpu;  
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
+    
+      
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -133,9 +147,27 @@ void thread_foreach (thread_action_func *, void *);
 int thread_get_priority (void);
 void thread_set_priority (int);
 
+/********************* +1.3 *********************/
+void update_thread_advanced_priority (void);
+void update_all_advanced_priority (void);
+void update_advanced_priority (struct thread *);
+void update_thread_recent_cpu (void);
+void update_all_recent_cpu (void);
+void update_recent_cpu (struct thread *);
+void update_load_avg (void);
+/**********************************************/
+
 int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+/********************************** changed ************************************/
+static bool sleep_threads_less(const struct list_elem *first, const struct list_elem *second);
+void thread_sleep(int64_t ticks);
+void thread_wakeup(void);
+void thread_given_set_priority (struct thread *, int, bool);
+/******************************************************************************/
+
 
 #endif /* threads/thread.h */
